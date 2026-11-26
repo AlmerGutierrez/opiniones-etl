@@ -30,3 +30,10 @@ public interface ITareaExtraccion
     string Nombre { get; }
     Task<ResumenTarea> EjecutarAsync(Guid idEjecucion, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Carga una dimensión del Data Warehouse invocando su procedimiento almacenado.</summary>
+public interface ICargadorDimension
+{
+    string Dimension { get; }
+    Task<ResultadoCarga> CargarAsync(Guid idEjecucion, CancellationToken cancellationToken = default);
+}

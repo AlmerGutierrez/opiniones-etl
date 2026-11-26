@@ -39,3 +39,11 @@ public sealed class FuentesOptions
     public FuenteBaseDatosOptions BaseDatosResenas { get; set; } = new();
     public FuenteApiOptions ApiComentarios { get; set; } = new();
 }
+
+public sealed class CargaDwOptions
+{
+    public bool Habilitada { get; set; } = true;
+    public string? TiempoDesde { get; set; }                 // AAAA-MM-DD o null para deducir de staging
+    public string? TiempoHasta { get; set; }                 // AAAA-MM-DD o null para deducir de staging
+    public int TimeoutSegundos { get; set; } = 60;
+}

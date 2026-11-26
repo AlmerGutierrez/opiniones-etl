@@ -6,6 +6,7 @@ using OpinionesEtl.Application.Contratos;
 using OpinionesEtl.Application.Servicios;
 using OpinionesEtl.Domain;
 using OpinionesEtl.Infrastructure.Api;
+using OpinionesEtl.Infrastructure.Carga;
 using OpinionesEtl.Infrastructure.Csv;
 using OpinionesEtl.Infrastructure.Datos;
 using OpinionesEtl.Infrastructure.Staging;
@@ -22,11 +23,19 @@ public static class DependenciasInfraestructura
     {
         servicios.Configure<EjecucionOptions>(configuracion.GetSection("Ejecucion"));
         servicios.Configure<FuentesOptions>(configuracion.GetSection("Fuentes"));
+        servicios.Configure<CargaDwOptions>(configuracion.GetSection("CargaDw"));
         var fuentes = configuracion.GetSection("Fuentes").Get<FuentesOptions>() ?? new FuentesOptions();
 
         servicios.AddSingleton<IConexionFactory, MySqlConexionFactory>();
         servicios.AddSingleton<IStagingMantenimiento, MySqlStagingMantenimiento>();
         servicios.AddSingleton<OrquestadorExtraccion>();
+        servicios.AddSingleton<OrquestadorCarga>();
+
+        servicios.AddSingleton<ICargadorDimension, DimSentimientoCargador>();
+        servicios.AddSingleton<ICargadorDimension, DimFuenteCargador>();
+        servicios.AddSingleton<ICargadorDimension, DimTiempoCargador>();
+        servicios.AddSingleton<ICargadorDimension, DimProductoCargador>();
+        servicios.AddSingleton<ICargadorDimension, DimClienteCargador>();
 
         if (fuentes.CsvClientes.Habilitada) Registrar<ClienteExtraido, ClienteCsvExtractor, ClienteStagingWriter>(servicios);
         if (fuentes.CsvProductos.Habilitada) Registrar<ProductoExtraido, ProductoCsvExtractor, ProductoStagingWriter>(servicios);

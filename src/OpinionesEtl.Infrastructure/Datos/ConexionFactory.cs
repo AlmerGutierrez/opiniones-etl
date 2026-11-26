@@ -8,6 +8,7 @@ public static class NombreConexion
 {
     public const string Staging = "Staging";
     public const string FuenteWeb = "FuenteWeb";
+    public const string DataWarehouse = "DataWarehouse";
 }
 
 /// <summary>Crea conexiones a partir de las cadenas de conexión de la configuración. Las cadenas con contraseña

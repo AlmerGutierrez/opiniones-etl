@@ -5,21 +5,29 @@ using OpinionesEtl.Application.Servicios;
 namespace OpinionesEtl.Worker;
 
 /// <summary>
-/// Servicio en segundo plano que dispara la extracción. En modo "UnaVez" ejecuta el proceso y cierra la aplicación;
-/// en modo "Periodico" se repite cada IntervaloMinutos hasta que se detenga el servicio.
+/// Servicio en segundo plano que dispara la extracción a staging y, a continuación, la carga de las
+/// dimensiones del Data Warehouse mediante procedimientos almacenados.
 /// </summary>
 public sealed class ExtraccionWorker : BackgroundService
 {
     private readonly OrquestadorExtraccion _orquestador;
+    private readonly OrquestadorCarga _orquestadorCarga;
     private readonly EjecucionOptions _opciones;
+    private readonly CargaDwOptions _opcionesDw;
     private readonly IHostApplicationLifetime _ciclo;
     private readonly ILogger<ExtraccionWorker> _logger;
 
-    public ExtraccionWorker(OrquestadorExtraccion orquestador, IOptions<EjecucionOptions> opciones,
-                            IHostApplicationLifetime ciclo, ILogger<ExtraccionWorker> logger)
+    public ExtraccionWorker(OrquestadorExtraccion orquestador,
+                            OrquestadorCarga orquestadorCarga,
+                            IOptions<EjecucionOptions> opciones,
+                            IOptions<CargaDwOptions> opcionesDw,
+                            IHostApplicationLifetime ciclo,
+                            ILogger<ExtraccionWorker> logger)
     {
         _orquestador = orquestador;
+        _orquestadorCarga = orquestadorCarga;
         _opciones = opciones.Value;
+        _opcionesDw = opcionesDw.Value;
         _ciclo = ciclo;
         _logger = logger;
     }
@@ -32,9 +40,17 @@ public sealed class ExtraccionWorker : BackgroundService
             do
             {
                 var resumen = await _orquestador.EjecutarAsync(stoppingToken);
-                if (resumen.ConErrores)
+                var conErrores = resumen.ConErrores;
+
+                if (_opcionesDw.Habilitada)
                 {
-                    Environment.ExitCode = 2;   // alguna fuente falló: el código de salida lo refleja
+                    var resumenCarga = await _orquestadorCarga.EjecutarAsync(resumen.IdEjecucion, stoppingToken);
+                    conErrores = conErrores || resumenCarga.ConErrores;
+                }
+
+                if (conErrores)
+                {
+                    Environment.ExitCode = 2;   // alguna fuente o dimensión falló: el código de salida lo refleja
                 }
 
                 if (periodico)
@@ -52,7 +68,7 @@ public sealed class ExtraccionWorker : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogCritical(ex, "La extracción terminó con un error no controlado");
+            _logger.LogCritical(ex, "El proceso ETL terminó con un error no controlado");
             Environment.ExitCode = 1;
         }
         finally
